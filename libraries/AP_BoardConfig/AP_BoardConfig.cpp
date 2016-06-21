@@ -125,7 +125,7 @@ const AP_Param::GroupInfo AP_BoardConfig::var_info[] = {
     // @Values: 0:Disabled,1:Enabled
     // @Bitmask: 0:Ch1,1:Ch2,2:Ch3,3:Ch4,4:Ch5,5:Ch6,6:Ch7,7:Ch8
     // @RebootRequired: True
-    AP_GROUPINFO("SAFETY_MASK", 7, AP_BoardConfig, _ignore_safety_channels, 0),
+    AP_GROUPINFO("SAFETY_MASK", 9, AP_BoardConfig, _ignore_safety_channels, 0),
 #endif
 
     AP_GROUPEND
