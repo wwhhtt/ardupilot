@@ -41,24 +41,15 @@ FlightPlayer::FlightPlayer(const char *home_str, const char *frame_str) :
         exit(1);
     }
 
-<<<<<<< HEAD
     set_rate_hz(1000);
     
-=======
->>>>>>> ff26d6d... add FlightPlayer SITL frame
     sock.reuseaddress();
     sock.set_blocking(false);
     fprintf(stdout, "bind\n");
 }
-<<<<<<< HEAD
     
-/*
-      decode and send servos
-=======
-
-/*
+    /*
   decode and send servos
->>>>>>> ff26d6d... add FlightPlayer SITL frame
 */
 void FlightPlayer::send_servos(const struct sitl_input &input)
 {
@@ -69,17 +60,9 @@ void FlightPlayer::send_servos(const struct sitl_input &input)
     pkt.motor_speed[3] = (input.servos[3]-1000) / 1000.0f;
     sock.sendto(&pkt, sizeof(pkt), "127.0.0.1", 9002);
 }
-<<<<<<< HEAD
-    
-/*
-      receive an update from the FDM
-      This is a blocking function
-=======
-
 /*
   receive an update from the FDM
   This is a blocking function
->>>>>>> ff26d6d... add FlightPlayer SITL frame
  */
 void FlightPlayer::recv_fdm(const struct sitl_input &input)
 {
