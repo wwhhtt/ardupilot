@@ -22,6 +22,7 @@
 #include <SITL/SIM_CRRCSim.h>
 #include <SITL/SIM_Gazebo.h>
 #include <SITL/SIM_FlightPlayer.h>
+#include <SITL/SIM_Solo.h>
 #include <SITL/SIM_last_letter.h>
 #include <SITL/SIM_JSBSim.h>
 #include <SITL/SIM_Tracker.h>
@@ -86,6 +87,7 @@ static const struct {
     { "jsbsim",             JSBSim::create },
     { "flightaxis",         FlightAxis::create },
     { "gazebo",             Gazebo::create },
+    { "solo",               Solo::create },
     { "flightplayer",       FlightPlayer::create },
     { "last_letter",        last_letter::create },
     { "tracker",            Tracker::create },

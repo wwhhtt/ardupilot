@@ -384,6 +384,10 @@ _options_for_frame = {
         "waf_target": "bin/arducopter-quad",
         "default_params_filename": "Solo_params.parm",
     },
+    "Solo": {
+        "waf_target": "bin/arducopter-quad",
+        "default_params_filename": "Solo_params.parm",
+    },
     "last_letter": {
         "waf_target": "bin/arduplane",
     },

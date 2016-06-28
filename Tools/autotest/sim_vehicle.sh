@@ -331,6 +331,11 @@ case $FRAME in
 	MODEL="$FRAME"
 	DEFAULTS_PATH="$autotest/Solo_params.parm"
 	;;
+    Solo)
+	BUILD_TARGET="sitl"
+	MODEL="$FRAME"
+	DEFAULTS_PATH="$autotest/Solo_params.parm"
+	;;
     CRRCSim|last_letter*)
 	BUILD_TARGET="sitl"
         MODEL="$FRAME"

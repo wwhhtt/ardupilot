@@ -196,17 +196,27 @@ class sitl(Board):
 
         env.LIB += [
             'm',
+            'VehicleBuild',
         ]
 
         if sys.platform != 'darwin':
             cfg.check_librt(env)
 
-        env.LINKFLAGS += ['-pthread',]
+        env.LINKFLAGS += [
+            '-pthread',
+            '-L/Users/georgehines/Code/PhysicalSimulation/lib/',              
+        ]
+        
         env.AP_LIBRARIES += [
             'AP_HAL_SITL',
             'SITL',
         ]
 
+        env.INCLUDES += [
+            '/Users/georgehines/Code/PhysicalSimulation/include/',
+            '/Users/georgehines/Code/PhysicalSimulation/MATLAB_dist/include',
+        ]
+        
         if sys.platform == 'cygwin':
             env.LIB += [
                 'winmm',
