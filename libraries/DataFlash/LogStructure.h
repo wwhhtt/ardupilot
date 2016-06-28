@@ -138,6 +138,16 @@ struct PACKED log_Gimbal3 {
     int16_t az_torque_cmd;
 };
 
+
+struct PACKED log_QX1Gimbal {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float roll_out;
+    float pitch_out;
+    uint16_t roll_pwm;
+    uint16_t pitch_pwm;
+};
+
 struct PACKED log_RCIN {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -887,8 +897,9 @@ Format characters in the format string for binary log messages
     { LOG_GIMBAL3_MSG, sizeof(log_Gimbal3), \
       "GMB3", "Ihhh", "TimeMS,rl_torque_cmd,el_torque_cmd,az_torque_cmd" }, \
     { LOG_RATE_MSG, sizeof(log_Rate), \
-      "RATE", "Qffffffffffff",  "TimeUS,RDes,R,ROut,PDes,P,POut,YDes,Y,YOut,ADes,A,AOut" }
-
+      "RATE", "Qffffffffffff",  "TimeUS,RDes,R,ROut,PDes,P,POut,YDes,Y,YOut,ADes,A,AOut" }, \
+    { LOG_QX1GIMBAL_MSG, sizeof(log_QX1Gimbal), \
+      "QX1", "QffHH", "TimeUS,roll_out,pitch_out,roll_pwm,pitch_pwm" }
 // #if SBP_HW_LOGGING
 #define LOG_SBP_STRUCTURES \
     { LOG_MSG_SBPHEALTH, sizeof(log_SbpHealth), \
@@ -1002,6 +1013,7 @@ enum LogMessages {
     LOG_GIMBAL2_MSG,
     LOG_GIMBAL3_MSG,
     LOG_RATE_MSG,
+    LOG_QX1GIMBAL_MSG,
 };
 
 enum LogOriginType {

@@ -149,7 +149,7 @@ public:
                         const AP_Motors &motors,
                         const AC_AttitudeControl &attitude_control,
                         const AC_PosControl &pos_control);
-
+    void Log_Write_QX1Gimbal(float rout,float pout, uint16_t rpwm, uint16_t ppwm);
     void Log_Write(const char *name, const char *labels, const char *fmt, ...);
 
     // This structure provides information on the internal member data of a PID for logging purposes
