@@ -233,6 +233,7 @@ void AP_AHRS_NavEKF::update_EKF2(void)
             }
             _gyro_estimate += _gyro_bias;
 
+            // get z accel bias estimate from active EKF (this is usually for the primary IMU)
             float abias;
             EKF2.getAccelZBias(-1,abias);
 
@@ -299,8 +300,9 @@ void AP_AHRS_NavEKF::update_EKF3(void)
             }
             _gyro_estimate += _gyro_bias;
 
-            float abias;
-            EKF3.getAccelZBias(-1,abias);
+            // get 3-axis accel bias festimates for active EKF (this is usually for the primary IMU)
+            Vector3f abias;
+            EKF3.getAccelBias(-1,abias);
 
             // This EKF uses the primary IMU
             // Eventually we will run a separate instance of the EKF for each IMU and do the selection and blending of EKF outputs upstream
@@ -308,7 +310,7 @@ void AP_AHRS_NavEKF::update_EKF3(void)
             for (uint8_t i=0; i<_ins.get_accel_count(); i++) {
                 Vector3f accel = _ins.get_accel(i);
                 if (i==_ins.get_primary_accel()) {
-                    accel.z -= abias;
+                    accel -= abias;
                 }
                 if (_ins.get_accel_health(i)) {
                     _accel_ef_ekf[i] = _dcm_matrix * accel;
@@ -430,7 +432,7 @@ bool AP_AHRS_NavEKF::get_position(struct Location &loc) const
         break;
 
     case EKF_TYPE3:
-        if (EKF3.getLLH(loc) && EKF3.getPosNED(-1,ned_pos) && EKF3.getOriginLLH(origin)) {
+        if (EKF3.getLLH(loc) && EKF3.getPosD(-1,ned_pos.z) && EKF3.getOriginLLH(origin)) {
             // fixup altitude using relative position from EKF origin
             loc.alt = origin.alt - ned_pos.z*100;
             return true;
@@ -798,8 +800,15 @@ bool AP_AHRS_NavEKF::get_relative_position_NED(Vector3f &vec) const
     }
 #endif
 
-    case EKF_TYPE3:
-        return EKF3.getPosNED(-1,vec);
+    case EKF_TYPE3: {
+            Vector2f posNE;
+            float posD;
+            bool position_is_valid = (EKF3.getPosNE(-1,posNE) && EKF3.getPosD(-1,posD));
+            vec.x = posNE.x;
+            vec.y = posNE.y;
+            vec.z = posD;
+            return position_is_valid;
+        }
         
     case EKF_TYPE2:
     default: {
