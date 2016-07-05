@@ -21,7 +21,7 @@ AVCHOME=mavutil.location(40.072842,-105.230575,1586,0)
 
 homeloc = None
 num_wp = 0
-speedup_default = 5
+speedup_default = 10
 
 def hover(mavproxy, mav, hover_throttle=1450):
     mavproxy.send('rc 3 %u\n' % hover_throttle)
@@ -980,8 +980,8 @@ def fly_ArduCopter(binary, viewerip=None, map=False, valgrind=False):
         setup_rc(mavproxy)
         homeloc = mav.location()
 
-        # wait 10sec to allow EKF to settle
-        wait_seconds(mav, 10)
+        # wait 40sec for EKF and GPS checks to pass
+        wait_seconds(mav, 40)
 
         # Arm
         print("# Arm motors")
