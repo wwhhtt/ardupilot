@@ -136,6 +136,25 @@ void NavEKF2_core::setWindMagStateLearningMode()
         }
     }
 
+    // inhibit delta velocity bias learning if we have not yet aligned the tilt
+    if (tiltAlignComplete && inhibitDelVelBiasStates) {
+        // activate the states
+        inhibitDelVelBiasStates = false;
+        // set the initial covariance values
+        P[13][13] = sq(INIT_ACCEL_BIAS_UNCERTAINTY * dtEkfAvg);
+        P[14][14] = P[13][13];
+        P[15][15] = P[13][13];
+    }
+
+    if (tiltAlignComplete && inhibitDelAngBiasStates) {
+        // activate the states
+        inhibitDelAngBiasStates = false;
+        // set the initial covariance values
+        P[10][10] = sq(radians(InitialGyroBiasUncertainty() * dtEkfAvg));
+        P[11][11] = P[10][10];
+        P[12][12] = P[10][10];
+    }
+
     // If on ground we clear the flag indicating that the magnetic field in-flight initialisation has been completed
     // because we want it re-done for each takeoff
     if (onGround) {
@@ -145,7 +164,9 @@ void NavEKF2_core::setWindMagStateLearningMode()
 
     // Adjust the indexing limits used to address the covariance, states and other EKF arrays to avoid unnecessary operations
     // if we are not using those states
-    if (inhibitMagStates && inhibitWindStates) {
+    if (inhibitMagStates && inhibitWindStates && inhibitDelVelBiasStates) {
+        stateIndexLim = 12;
+    } else if (inhibitMagStates && !inhibitWindStates) {
         stateIndexLim = 15;
     } else if (inhibitWindStates) {
         stateIndexLim = 21;
@@ -234,10 +255,9 @@ void NavEKF2_core::setAidingMode()
 void NavEKF2_core::checkAttitudeAlignmentStatus()
 {
     // Check for tilt convergence - used during initial alignment
-    float alpha = 1.0f*imuDataDelayed.delAngDT;
-    float temp=tiltErrVec.length();
-    tiltErrFilt = alpha*temp + (1.0f-alpha)*tiltErrFilt;
-    if (tiltErrFilt < 0.005f && !tiltAlignComplete) {
+    float alpha = 1.0f;//*imuDataDelayed.delAngDT;
+    tiltErrFilt = alpha*norm(P[0][0],P[1][1],P[2][2],P[3][3]) + (1.0f-alpha)*tiltErrFilt;
+    if (tiltErrFilt < sq(0.03f) && !tiltAlignComplete) {
         tiltAlignComplete = true;
         hal.console->printf("EKF2 IMU%u tilt alignment complete\n",(unsigned)imu_index);
     }
@@ -332,9 +352,9 @@ bool NavEKF2_core::checkGyroCalStatus(void)
 {
     // check delta angle bias variances
     const float delAngBiasVarMax = sq(radians(0.1f * dtEkfAvg));
-    delAngBiasLearned =  (P[9][9] <= delAngBiasVarMax) &&
-                            (P[10][10] <= delAngBiasVarMax) &&
-                            (P[11][11] <= delAngBiasVarMax);
+    delAngBiasLearned = (P[10][10] <= delAngBiasVarMax) &&
+                        (P[11][11] <= delAngBiasVarMax) &&
+                        (P[12][12] <= delAngBiasVarMax);
     return delAngBiasLearned;
 }
 
