@@ -271,6 +271,24 @@ void NavEKF2_core::FuseVelPosNED()
         observation[4] = gpsDataDelayed.pos.y;
         observation[5] = -hgtMea;
 
+        // correct the GPS velocity for lever arm effect
+        Vector3f gpsPosRelXYZ(0.01f * frontend->_gpsPosXcm, 0.01f * frontend->_gpsPosYcm, 0.01f * frontend->_gpsPosZcm);
+        if (fuseVelData) {
+            Vector3f AngRate = imuDataDelayed.delAng * (1.0f/imuDataDelayed.delAngDT);
+            Vector3f gpsVelRelXYZ = gpsPosRelXYZ % AngRate;
+            Vector3f gpsVelRelNED = prevTnb.mul_transpose(gpsVelRelXYZ);
+            observation[0] -= gpsVelRelNED.x;
+            observation[1] -= gpsVelRelNED.y;
+            observation[2] -= gpsVelRelNED.z;
+        }
+
+        // correct the GPS position for lever arm effect
+        if (fusePosData) {
+            Vector3f gpsPosRelNED = prevTnb.mul_transpose(gpsPosRelXYZ);
+            observation[3] -= gpsPosRelNED.x;
+            observation[4] -= gpsPosRelNED.y;
+        }
+
         // calculate additional error in GPS position caused by manoeuvring
         float posErr = frontend->gpsPosVarAccScale * accNavMag;
 

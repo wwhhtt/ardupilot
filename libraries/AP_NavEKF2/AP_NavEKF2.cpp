@@ -466,6 +466,30 @@ const AP_Param::GroupInfo NavEKF2::var_info[] = {
     // @Units: gauss/s
     AP_GROUPINFO("MAGB_P_NSE", 41, NavEKF2, _magBodyProcessNoise, MAGB_P_NSE_DEFAULT),
 
+    // @Param: GPS_POS_X
+    // @DisplayName: X position of the GPS antenna (cm)
+    // @Description: Number of cm that the GPS antenna is forward of the IMU (negative if behind the IMU)
+    // @Range: -127 127
+    // @User: Advanced
+    // @Units: cm
+    AP_GROUPINFO("GPS_POS_X", 42, NavEKF2, _gpsPosXcm, 0),
+
+    // @Param: GPS_POS_Y
+    // @DisplayName: Y position of the GPS antenna (cm)
+    // @Description: Number of cm that the GPS antenna is to the right of the IMU (negative if to the left of the IMU)
+    // @Range: -127 127
+    // @User: Advanced
+    // @Units: cm
+    AP_GROUPINFO("GPS_POS_Y", 43, NavEKF2, _gpsPosYcm, 0),
+
+    // @Param: GPS_POS_Z
+    // @DisplayName: Z position of the GPS antenna (cm)
+    // @Description: Number of cm that the GPS antenna is below the IMU (negative if above the IMU)
+    // @Range: -127 127
+    // @User: Advanced
+    // @Units: cm
+    AP_GROUPINFO("GPS_POS_Z", 44, NavEKF2, _gpsPosZcm, 0),
+
     AP_GROUPEND
 };
 
