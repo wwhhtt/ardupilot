@@ -86,6 +86,7 @@ public:
         k_param_mission, // mission library
         k_param_NavEKF2_old, // deprecated
         k_param_NavEKF2,
+        k_param_NavEKF3,
 
         // 140: battery controls
         k_param_battery_monitoring = 140,   // deprecated, can be deleted
