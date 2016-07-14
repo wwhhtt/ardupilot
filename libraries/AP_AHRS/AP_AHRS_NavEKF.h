@@ -45,7 +45,7 @@
  */
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 && (defined(CONFIG_ARCH_BOARD_PX4FMU_V1) || defined(CONFIG_ARCH_BOARD_PX4FMU_V2))
 // Solo can use additional flash space because of the STM32 chip revision in the PX2
-#define AP_AHRS_WITH_EKF1 1
+#define AP_AHRS_WITH_EKF1 0
 #else
 #define AP_AHRS_WITH_EKF1 1
 #endif
