@@ -54,6 +54,7 @@ public:
         k_param_ins,                            // libraries/AP_InertialSensor variables
         k_param_NavEKF2_old, // deprecated
         k_param_NavEKF2,
+        k_param_NavEKF3,
 
         // simulation
         k_param_sitl = 10,
