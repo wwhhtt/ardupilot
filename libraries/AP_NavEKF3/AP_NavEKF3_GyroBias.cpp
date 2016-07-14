@@ -19,12 +19,12 @@ extern const AP_HAL::HAL& hal;
 void NavEKF3_core::resetGyroBias(void)
 {
     stateStruct.gyro_bias.zero();
-    zeroRows(P,9,11);
-    zeroCols(P,9,11);
+    zeroRows(P,10,12);
+    zeroCols(P,10,12);
 
-    P[9][9] = sq(radians(0.5f * dtIMUavg));
-    P[10][10] = P[9][9];
-    P[11][11] = P[9][9];
+    P[10][10] = sq(radians(0.5f * dtIMUavg));
+    P[11][11] = P[10][10];
+    P[12][12] = P[10][10];
 }
 
 /*

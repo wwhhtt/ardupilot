@@ -136,6 +136,25 @@ void NavEKF3_core::setWindMagStateLearningMode()
         }
     }
 
+    // inhibit delta velocity bias learning if we have not yet aligned the tilt
+    if (tiltAlignComplete && inhibitDelVelBiasStates) {
+        // activate the states
+        inhibitDelVelBiasStates = false;
+        // set the initial covariance values
+        P[13][13] = sq(INIT_ACCEL_BIAS_UNCERTAINTY * dtEkfAvg);
+        P[14][14] = P[13][13];
+        P[15][15] = P[13][13];
+    }
+
+    if (tiltAlignComplete && inhibitDelAngBiasStates) {
+        // activate the states
+        inhibitDelAngBiasStates = false;
+        // set the initial covariance values
+        P[10][10] = sq(radians(InitialGyroBiasUncertainty() * dtEkfAvg));
+        P[11][11] = P[10][10];
+        P[12][12] = P[10][10];
+    }
+
     // If on ground we clear the flag indicating that the magnetic field in-flight initialisation has been completed
     // because we want it re-done for each takeoff
     if (onGround) {
@@ -145,7 +164,9 @@ void NavEKF3_core::setWindMagStateLearningMode()
 
     // Adjust the indexing limits used to address the covariance, states and other EKF arrays to avoid unnecessary operations
     // if we are not using those states
-    if (inhibitMagStates && inhibitWindStates) {
+    if (inhibitMagStates && inhibitWindStates && inhibitDelVelBiasStates) {
+        stateIndexLim = 12;
+    } else if (inhibitMagStates && !inhibitWindStates) {
         stateIndexLim = 15;
     } else if (inhibitWindStates) {
         stateIndexLim = 21;
@@ -160,13 +181,17 @@ void NavEKF3_core::setAidingMode()
     // Determine when to commence aiding for inertial navigation
     // Save the previous status so we can detect when it has changed
     prevIsAiding = isAiding;
-    // Don't allow filter to start position or velocity aiding until the tilt and yaw alignment is complete
-    bool filterIsStable = tiltAlignComplete && yawAlignComplete;
-    // If GPS usage has been prohiited then we use flow aiding provided optical flow data is present
-    bool useFlowAiding = (frontend->_fusionModeGPS == 3) && optFlowDataPresent();
-    // Start aiding if we have a source of aiding data and the filter attitude algnment is complete
-    // Latch to on
-    isAiding = ((readyToUseGPS() || useFlowAiding) && filterIsStable) || isAiding;
+    // perform aiding checks if not aiding
+     if (!isAiding) {
+        // Don't allow filter to start position or velocity aiding until the tilt and yaw alignment is complete
+        // and IMU gyro bias estimates have stabilised
+        bool filterIsStable = tiltAlignComplete && yawAlignComplete && checkGyroCalStatus();
+        // If GPS usage has been prohiited then we use flow aiding provided optical flow data is present
+        bool useFlowAiding = (frontend->_fusionModeGPS == 3) && optFlowDataPresent();
+        // Start aiding if we have a source of aiding data and the filter attitude algnment is complete
+        // Latch to on
+        isAiding = (readyToUseGPS() || useFlowAiding) && filterIsStable;
+    }
 
     // check to see if we are starting or stopping aiding and set states and modes as required
     if (isAiding != prevIsAiding) {
@@ -230,10 +255,9 @@ void NavEKF3_core::setAidingMode()
 void NavEKF3_core::checkAttitudeAlignmentStatus()
 {
     // Check for tilt convergence - used during initial alignment
-    float alpha = 1.0f*imuDataDelayed.delAngDT;
-    float temp=tiltErrVec.length();
-    tiltErrFilt = alpha*temp + (1.0f-alpha)*tiltErrFilt;
-    if (tiltErrFilt < 0.005f && !tiltAlignComplete) {
+    float alpha = 1.0f;//*imuDataDelayed.delAngDT;
+    tiltErrFilt = alpha*norm(P[0][0],P[1][1],P[2][2],P[3][3]) + (1.0f-alpha)*tiltErrFilt;
+    if (tiltErrFilt < sq(0.03f) && !tiltAlignComplete) {
         tiltAlignComplete = true;
         hal.console->printf("EKF3 IMU%u tilt alignment complete\n",(unsigned)imu_index);
     }
@@ -323,6 +347,17 @@ void NavEKF3_core::recordYawReset()
     }
 }
 
+// return true and set the class variable true if the delta angle bias has been learned
+bool NavEKF3_core::checkGyroCalStatus(void)
+{
+    // check delta angle bias variances
+    const float delAngBiasVarMax = sq(radians(0.1f * dtEkfAvg));
+    delAngBiasLearned = (P[10][10] <= delAngBiasVarMax) &&
+                        (P[11][11] <= delAngBiasVarMax) &&
+                        (P[12][12] <= delAngBiasVarMax);
+    return delAngBiasLearned;
+}
+
 // Commands the EKF to not use GPS.
 // This command must be sent prior to arming
 // This command is forgotten by the EKF each time the vehicle disarms
@@ -341,6 +376,40 @@ uint8_t NavEKF3_core::setInhibitGPS(void)
     } else {
         return 1;
     }
+}
+
+// Update the filter status
+void  NavEKF3_core::updateFilterStatus(void)
+{
+    // init return value
+    filterStatus.value = 0;
+    bool doingFlowNav = (PV_AidingMode == AID_RELATIVE) && flowDataValid;
+    bool doingWindRelNav = !tasTimeout && assume_zero_sideslip();
+    bool doingNormalGpsNav = !posTimeout && (PV_AidingMode == AID_ABSOLUTE);
+    bool someVertRefData = (!velTimeout && useGpsVertVel) || !hgtTimeout;
+    bool someHorizRefData = !(velTimeout && posTimeout && tasTimeout) || doingFlowNav;
+    bool optFlowNavPossible = flowDataValid && (frontend->_fusionModeGPS == 3) && delAngBiasLearned;
+    bool gpsNavPossible = !gpsNotAvailable && gpsGoodToAlign && delAngBiasLearned;
+    bool filterHealthy = healthy() && tiltAlignComplete && (yawAlignComplete || (!use_compass() && (PV_AidingMode == AID_NONE)));
+    // If GPS height usage is specified, height is considered to be inaccurate until the GPS passes all checks
+    bool hgtNotAccurate = (frontend->_altSource == 2) && !validOrigin;
+
+    // set individual flags
+    filterStatus.flags.attitude = !stateStruct.quat.is_nan() && filterHealthy;   // attitude valid (we need a better check)
+    filterStatus.flags.horiz_vel = someHorizRefData && filterHealthy;      // horizontal velocity estimate valid
+    filterStatus.flags.vert_vel = someVertRefData && filterHealthy;        // vertical velocity estimate valid
+    filterStatus.flags.horiz_pos_rel = ((doingFlowNav && gndOffsetValid) || doingWindRelNav || doingNormalGpsNav) && filterHealthy;   // relative horizontal position estimate valid
+    filterStatus.flags.horiz_pos_abs = doingNormalGpsNav && filterHealthy; // absolute horizontal position estimate valid
+    filterStatus.flags.vert_pos = !hgtTimeout && filterHealthy && !hgtNotAccurate; // vertical position estimate valid
+    filterStatus.flags.terrain_alt = gndOffsetValid && filterHealthy;		// terrain height estimate valid
+    filterStatus.flags.const_pos_mode = (PV_AidingMode == AID_NONE) && filterHealthy;     // constant position mode
+    filterStatus.flags.pred_horiz_pos_rel = ((optFlowNavPossible || gpsNavPossible) && filterHealthy) || filterStatus.flags.horiz_pos_rel; // we should be able to estimate a relative position when we enter flight mode
+    filterStatus.flags.pred_horiz_pos_abs = (gpsNavPossible && filterHealthy) || filterStatus.flags.horiz_pos_abs; // we should be able to estimate an absolute position when we enter flight mode
+    filterStatus.flags.takeoff_detected = takeOffDetected; // takeoff for optical flow navigation has been detected
+    filterStatus.flags.takeoff = expectGndEffectTakeoff; // The EKF has been told to expect takeoff and is in a ground effect mitigation mode
+    filterStatus.flags.touchdown = expectGndEffectTouchdown; // The EKF has been told to detect touchdown and is in a ground effect mitigation mode
+    filterStatus.flags.using_gps = ((imuSampleTime_ms - lastPosPassTime_ms) < 4000) && (PV_AidingMode == AID_ABSOLUTE);
+    filterStatus.flags.gps_glitching = !gpsAccuracyGood && (PV_AidingMode == AID_ABSOLUTE); // The GPS is glitching
 }
 
 #endif // HAL_CPU_CLASS

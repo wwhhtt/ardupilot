@@ -21,7 +21,7 @@
 
 #pragma GCC optimize("O3")
 
-#define EK3_DISABLE_INTERRUPTS 0
+#define EK2_DISABLE_INTERRUPTS 0
 
 
 #include <AP_Math/AP_Math.h>
@@ -39,6 +39,18 @@
 #define MASK_GPS_POS_DRIFT  (1<<5)
 #define MASK_GPS_VERT_SPD   (1<<6)
 #define MASK_GPS_HORIZ_SPD  (1<<7)
+
+#define earthRate 0.000072921f // earth rotation rate (rad/sec)
+
+// when the wind estimation first starts with no airspeed sensor,
+// assume 3m/s to start
+#define STARTUP_WIND_SPEED 3.0f
+
+// initial imu bias error (m/s/s)
+#define INIT_ACCEL_BIAS_UNCERTAINTY 0.2f
+
+// maximum allowed gyro bias (rad/sec)
+#define GYRO_BIAS_LIMIT 0.5f
 
 class AP_AHRS;
 
@@ -66,10 +78,15 @@ public:
     // Intended to be used by the front-end to determine which is the primary EKF
     float faultScore(void) const;
 
-    // Return the last calculated NED position relative to the reference point (m).
+    // Write the last calculated NE position relative to the reference point (m).
     // If a calculated solution is not available, use the best available data and return false
     // If false returned, do not use for flight control
-    bool getPosNED(Vector3f &pos) const;
+    bool getPosNE(Vector2f &posNE) const;
+
+    // Write the last calculated D position relative to the reference point (m).
+    // If a calculated solution is not available, use the best available data and return false
+    // If false returned, do not use for flight control
+    bool getPosD(float &posD) const;
 
     // return NED velocity in m/s
     void getVelNED(Vector3f &vel) const;
@@ -85,8 +102,8 @@ public:
     // return body axis gyro bias estimates in rad/sec
     void getGyroBias(Vector3f &gyroBias) const;
 
-    // return body axis gyro scale factor error as a percentage
-    void getGyroScaleErrorPercentage(Vector3f &gyroScale) const;
+    // return accelerometer bias in m/s/s
+    void getAccelBias(Vector3f &accelBias) const;
 
     // return tilt error convergence metric
     void getTiltError(float &ang) const;
@@ -112,9 +129,6 @@ public:
     // return the horizontal speed limit in m/s set by optical flow sensor limits
     // return the scale factor to be applied to navigation velocity gains to compensate for increase in velocity noise with height when using optical flow
     void getEkfControlLimits(float &ekfGndSpdLimit, float &ekfNavVelGainScaler) const;
-
-    // return the Z-accel bias estimate in m/s^2
-    void getAccelZBias(float &zbias) const;
 
     // return the NED wind speed estimates in m/s (positive is air moving in the direction of the axis)
     void getWind(Vector3f &wind) const;
@@ -283,6 +297,7 @@ private:
     typedef VectorN<ftype,13> Vector13;
     typedef VectorN<ftype,14> Vector14;
     typedef VectorN<ftype,15> Vector15;
+    typedef VectorN<ftype,21> Vector21;
     typedef VectorN<ftype,22> Vector22;
     typedef VectorN<ftype,23> Vector23;
     typedef VectorN<ftype,24> Vector24;
@@ -307,6 +322,7 @@ private:
     typedef ftype Vector13[13];
     typedef ftype Vector14[14];
     typedef ftype Vector15[15];
+    typedef ftype Vector21[21];
     typedef ftype Vector22[22];
     typedef ftype Vector23[23];
     typedef ftype Vector24[24];
@@ -320,21 +336,19 @@ private:
 
     const AP_AHRS *_ahrs;
 
-    // the states are available in two forms, either as a Vector31, or
+    // the states are available in two forms, either as a Vector24, or
     // broken down as individual elements. Both are equivalent (same
     // memory)
-    Vector28 statesArray;
+    Vector24 statesArray;
     struct state_elements {
-        Vector3f    angErr;         // 0..2
-        Vector3f    velocity;       // 3..5
-        Vector3f    position;       // 6..8
-        Vector3f    gyro_bias;      // 9..11
-        Vector3f    gyro_scale;     // 12..14
-        float       accel_zbias;    // 15
+        Quaternion  quat;           // 0..3
+        Vector3f    velocity;       // 4..6
+        Vector3f    position;       // 7..9
+        Vector3f    gyro_bias;      // 10..12
+        Vector3f    accel_bias;     // 13..15
         Vector3f    earth_magfield; // 16..18
         Vector3f    body_magfield;  // 19..21
         Vector2f    wind_vel;       // 22..23
-        Quaternion  quat;           // 24..27
     } &stateStruct;
 
     struct output_elements {
@@ -383,6 +397,9 @@ private:
         Vector2f    flowRadXYcomp;  // 2..3
         uint32_t    time_ms;        // 4
     };
+
+    // update the navigation filter status
+    void  updateFilterStatus(void);
 
     // update the quaternion, velocity and position states using IMU measurements
     void UpdateStrapdownEquationsNED();
@@ -476,10 +493,6 @@ private:
     // helper functions for readIMUData
     bool readDeltaVelocity(uint8_t ins_index, Vector3f &dVel, float &dVel_dt);
     bool readDeltaAngle(uint8_t ins_index, Vector3f &dAng);
-
-    // helper functions for correcting IMU data
-    void correctDeltaAngle(Vector3f &delAng, float delAngDT);
-    void correctDeltaVelocity(Vector3f &delVel, float delVelDT);
 
     // update IMU delta angle and delta velocity measurements
     void readIMUData();
@@ -586,6 +599,9 @@ private:
     // Assess GPS data quality and return true if good enough to align the EKF
     bool calcGpsGoodToAlign(void);
 
+    // return true and set the class variable true if the delta angle bias has been learned
+    bool checkGyroCalStatus(void);
+
     // update inflight calculaton that determines if GPS data is good enough for reliable navigation
     void calcGpsGoodForFlight(void);
 
@@ -627,7 +643,13 @@ private:
 
     // effective value of MAG_CAL
     uint8_t effective_magCal(void) const;
+
+    // calculate the variances for the rotation vector equivalent
+    Vector3f calcRotVecVariances(void);
     
+    // initialise the quaternion covariances using rotation vector variances
+    void initialiseQuatCovariances(Vector3f &rotVarVec);
+
     // Length of FIFO buffers used for non-IMU sensor data.
     // Must be larger than the time period defined by IMU_BUFFER_LENGTH
     static const uint32_t OBS_BUFFER_LENGTH = 5;
@@ -708,10 +730,10 @@ private:
     uint32_t ekfStartTime_ms;       // time the EKF was started (msec)
     Matrix24 nextP;                 // Predicted covariance matrix before addition of process noise to diagonals
     Vector24 processNoise;          // process noise added to diagonals of predicted covariance matrix
-    Vector25 SF;                    // intermediate variables used to calculate predicted covariance matrix
-    Vector5 SG;                     // intermediate variables used to calculate predicted covariance matrix
-    Vector8 SQ;                     // intermediate variables used to calculate predicted covariance matrix
-    Vector23 SPP;                   // intermediate variables used to calculate predicted covariance matrix
+    Vector21 SF;                    // intermediate variables used to calculate predicted covariance matrix
+    Vector8 SG;                     // intermediate variables used to calculate predicted covariance matrix
+    Vector11 SQ;                    // intermediate variables used to calculate predicted covariance matrix
+    Vector11 SPP;                   // intermediate variables used to calculate predicted covariance matrix
     Vector2f lastKnownPositionNE;   // last known position
     uint32_t lastDecayTime_ms;      // time of last decay of GPS position offset
     float velTestRatio;             // sum of squares of GPS velocity innovation divided by fail threshold
@@ -720,7 +742,9 @@ private:
     Vector3f magTestRatio;          // sum of squares of magnetometer innovations divided by fail threshold
     float tasTestRatio;             // sum of squares of true airspeed innovation divided by fail threshold
     bool inhibitWindStates;         // true when wind states and covariances are to remain constant
-    bool inhibitMagStates;          // true when magnetic field states and covariances are to remain constant
+    bool inhibitMagStates;          // true when magnetic field states are inactive
+    bool inhibitDelVelBiasStates;   // true when delta velocity bias states are inactive
+    bool inhibitDelAngBiasStates;
     bool gpsNotAvailable;           // bool true when valid GPS data is not available
     bool isAiding;                  // true when the filter is fusing position, velocity or flow measurements
     bool prevIsAiding;              // isAiding from previous frame
@@ -734,7 +758,6 @@ private:
     bool useGpsVertVel;             // true if GPS vertical velocity should be used
     float yawResetAngle;            // Change in yaw angle due to last in-flight yaw reset in radians. A positive value means the yaw angle has increased.
     uint32_t lastYawReset_ms;       // System time at which the last yaw reset occurred. Returned by getLastYawResetAngle
-    Vector3f tiltErrVec;            // Vector of most recent attitude error correction from Vel,Pos fusion
     float tiltErrFilt;              // Filtered tilt error metric
     bool tiltAlignComplete;         // true when tilt alignment is complete
     bool yawAlignComplete;          // true when yaw alignment is complete
@@ -764,8 +787,8 @@ private:
     output_elements outputDataNew;  // output state data at the current time step
     output_elements outputDataDelayed; // output state data at the current time step
     Vector3f delAngCorrection;      // correction applied to delta angles used by output observer to track the EKF
-    Vector3f velCorrection;         // correction applied to velocities used by the output observer to track the EKF
-    Vector3f posCorrection;         // correction applied to positions used by the output observer to track the EKF
+    Vector3f velErrintegral;        // integral of output predictor NED velocity tracking error (m)
+    Vector3f posErrintegral;        // integral of output predictor NED position tracking error (m.sec)
     float innovYaw;                 // compass yaw angle innovation (rad)
     uint32_t timeTasReceived_ms;    // time last TAS data was received (msec)
     bool gpsGoodToAlign;            // true when the GPS quality can be used to initialise the navigation system
@@ -793,11 +816,11 @@ private:
     bool startPredictEnabled;       // boolean true when the frontend has given permission to start a new state prediciton cycele
     uint8_t localFilterTimeStep_ms; // average number of msec between filter updates
     float posDownObsNoise;          // observation noise variance on the vertical position used by the state and covariance update step (m^2)
-    Vector3f delAngCorrected;       // corrected IMU delta angle vector at the EKF time horizon (rad)
-    Vector3f delVelCorrected;       // corrected IMU delta velocity vector at the EKF time horizon (m/s)
     bool magFieldLearned;           // true when the magnetic field has been learned
     Vector3f earthMagFieldVar;      // NED earth mag field variances for last learned field (mGauss^2)
     Vector3f bodyMagFieldVar;       // XYZ body mag field variances for last learned field (mGauss^2)
+    bool delAngBiasLearned;         // true when the gyro bias has been learned
+    nav_filter_status filterStatus; // contains the status of various filter outputs
 
     Vector3f outputTrackError;
 

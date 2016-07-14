@@ -17,14 +17,13 @@
 // copter defaults
 #define VELNE_M_NSE_DEFAULT     0.5f
 #define VELD_M_NSE_DEFAULT      0.7f
-#define POSNE_M_NSE_DEFAULT     1.0f
+#define POSNE_M_NSE_DEFAULT     0.5f
 #define ALT_M_NSE_DEFAULT       3.0f
 #define MAG_M_NSE_DEFAULT       0.05f
-#define GYRO_P_NSE_DEFAULT      3.0E-02f
-#define ACC_P_NSE_DEFAULT       6.0E-01f
-#define GBIAS_P_NSE_DEFAULT     1.0E-04f
-#define GSCALE_P_NSE_DEFAULT    5.0E-04f
-#define ABIAS_P_NSE_DEFAULT     5.0E-03f
+#define GYRO_P_NSE_DEFAULT      2.2E-02f
+#define ACC_P_NSE_DEFAULT       3.0E-01f
+#define GBIAS_P_NSE_DEFAULT     3.0E-04f
+#define ABIAS_P_NSE_DEFAULT     3.0E-03f
 #define MAGB_P_NSE_DEFAULT      1.0E-04f
 #define MAGE_P_NSE_DEFAULT      1.0E-03f
 #define VEL_I_GATE_DEFAULT      500
@@ -42,14 +41,13 @@
 // rover defaults
 #define VELNE_M_NSE_DEFAULT     0.5f
 #define VELD_M_NSE_DEFAULT      0.7f
-#define POSNE_M_NSE_DEFAULT     1.0f
+#define POSNE_M_NSE_DEFAULT     0.5f
 #define ALT_M_NSE_DEFAULT       3.0f
 #define MAG_M_NSE_DEFAULT       0.05f
 #define GYRO_P_NSE_DEFAULT      3.0E-02f
 #define ACC_P_NSE_DEFAULT       6.0E-01f
-#define GBIAS_P_NSE_DEFAULT     1.0E-04f
-#define GSCALE_P_NSE_DEFAULT    5.0E-04f
-#define ABIAS_P_NSE_DEFAULT     5.0E-03f
+#define GBIAS_P_NSE_DEFAULT     3.0E-04f
+#define ABIAS_P_NSE_DEFAULT     3.0E-03f
 #define MAGB_P_NSE_DEFAULT      1.0E-04f
 #define MAGE_P_NSE_DEFAULT      1.0E-03f
 #define VEL_I_GATE_DEFAULT      500
@@ -67,14 +65,13 @@
 // plane defaults
 #define VELNE_M_NSE_DEFAULT     0.5f
 #define VELD_M_NSE_DEFAULT      0.7f
-#define POSNE_M_NSE_DEFAULT     1.0f
+#define POSNE_M_NSE_DEFAULT     0.5f
 #define ALT_M_NSE_DEFAULT       3.0f
 #define MAG_M_NSE_DEFAULT       0.05f
 #define GYRO_P_NSE_DEFAULT      3.0E-02f
 #define ACC_P_NSE_DEFAULT       6.0E-01f
-#define GBIAS_P_NSE_DEFAULT     1.0E-04f
-#define GSCALE_P_NSE_DEFAULT    5.0E-04f
-#define ABIAS_P_NSE_DEFAULT     5.0E-03f
+#define GBIAS_P_NSE_DEFAULT     3.0E-04f
+#define ABIAS_P_NSE_DEFAULT     3.0E-03f
 #define MAGB_P_NSE_DEFAULT      1.0E-04f
 #define MAGE_P_NSE_DEFAULT      1.0E-03f
 #define VEL_I_GATE_DEFAULT      500
@@ -86,20 +83,19 @@
 #define FLOW_MEAS_DELAY         10
 #define FLOW_M_NSE_DEFAULT      0.25f
 #define FLOW_I_GATE_DEFAULT     300
-#define CHECK_SCALER_DEFAULT    150
+#define CHECK_SCALER_DEFAULT    100
 
 #else
 // build type not specified, use copter defaults
 #define VELNE_M_NSE_DEFAULT     0.5f
 #define VELD_M_NSE_DEFAULT      0.7f
-#define POSNE_M_NSE_DEFAULT     1.0f
+#define POSNE_M_NSE_DEFAULT     0.5f
 #define ALT_M_NSE_DEFAULT       3.0f
 #define MAG_M_NSE_DEFAULT       0.05f
 #define GYRO_P_NSE_DEFAULT      3.0E-02f
 #define ACC_P_NSE_DEFAULT       6.0E-01f
-#define GBIAS_P_NSE_DEFAULT     1.0E-04f
-#define GSCALE_P_NSE_DEFAULT    5.0E-04f
-#define ABIAS_P_NSE_DEFAULT     5.0E-03f
+#define GBIAS_P_NSE_DEFAULT     3.0E-04f
+#define ABIAS_P_NSE_DEFAULT     3.0E-03f
 #define MAGB_P_NSE_DEFAULT      1.0E-04f
 #define MAGE_P_NSE_DEFAULT      1.0E-03f
 #define VEL_I_GATE_DEFAULT      500
@@ -122,10 +118,10 @@ const AP_Param::GroupInfo NavEKF3::var_info[] = {
 
     // @Param: ENABLE
     // @DisplayName: Enable EKF3
-    // @Description: This enables EKF3. Enabling EKF3 only makes the maths run, it does not mean it will be used for flight control. To use it for flight control set AHRS_EKF_TYPE=2. A reboot or restart will need to be performed after changing the value of EK3_ENABLE for it to take effect.
+    // @Description: This enables EKF3. Enabling EKF3 only makes the maths run, it does not mean it will be used for flight control. To use it for flight control set AHRS_EKF_TYPE=3. A reboot or restart will need to be performed after changing the value of EK2_ENABLE for it to take effect.
     // @Values: 0:Disabled, 1:Enabled
     // @User: Advanced
-    AP_GROUPINFO_FLAGS("ENABLE", 0, NavEKF3, _enable, 0, AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO_FLAGS("ENABLE", 0, NavEKF3, _enable, 1, AP_PARAM_FLAG_ENABLE),
 
     // GPS measurement parameters
 
@@ -201,7 +197,7 @@ const AP_Param::GroupInfo NavEKF3::var_info[] = {
 
     // @Param: ALT_SOURCE
     // @DisplayName: Primary height source
-    // @Description: This parameter controls which height sensor is used by the EKF. If the selected optionn cannot be used, it will default to Baro as the primary height source. Setting 0 will use the baro altitude at all times. Setting 1 uses the range finder and is only available in combination with optical flow navigation (EK3_GPS_TYPE = 3). Setting 2 uses GPS.
+    // @Description: This parameter controls which height sensor is used by the EKF. If the selected optionn cannot be used, it will default to Baro as the primary height source. Setting 0 will use the baro altitude at all times. Setting 1 uses the range finder and is only available in combination with optical flow navigation (EK2_GPS_TYPE = 3). Setting 2 uses GPS.
     // @Values: 0:Use Baro, 1:Use Range Finder, 2:Use GPS
     // @User: Advanced
     AP_GROUPINFO("ALT_SOURCE", 9, NavEKF3, _altSource, 0),
@@ -361,13 +357,7 @@ const AP_Param::GroupInfo NavEKF3::var_info[] = {
     // @Units: rad/s/s
     AP_GROUPINFO("GBIAS_P_NSE", 26, NavEKF3, _gyroBiasProcessNoise, GBIAS_P_NSE_DEFAULT),
 
-    // @Param: GSCL_P_NSE
-    // @DisplayName: Rate gyro scale factor stability (1/s)
-    // @Description: This noise controls the rate of gyro scale factor learning. Increasing it makes rate gyro scale factor estimation faster and noisier.
-    // @Range: 0.000001 0.001
-    // @User: Advanced
-    // @Units: 1/s
-    AP_GROUPINFO("GSCL_P_NSE", 27, NavEKF3, _gyroScaleProcessNoise, GSCALE_P_NSE_DEFAULT),
+    // 27 previously used for EK2_GSCL_P_NSE parameter that has been removed
 
     // @Param: ABIAS_P_NSE
     // @DisplayName: Accelerometer bias stability (m/s^3)
@@ -377,7 +367,7 @@ const AP_Param::GroupInfo NavEKF3::var_info[] = {
     // @Units: m/s/s/s
     AP_GROUPINFO("ABIAS_P_NSE", 28, NavEKF3, _accelBiasProcessNoise, ABIAS_P_NSE_DEFAULT),
 
-    // 29 previously used for EK3_MAG_P_NSE parameter that has been replaced with EK3_MAGE_P_NSE and EK3_MAGB_P_NSE
+    // 29 previously used for EK2_MAG_P_NSE parameter that has been replaced with EK2_MAGE_P_NSE and EK2_MAGB_P_NSE
 
     // @Param: WIND_P_NSE
     // @DisplayName: Wind velocity process noise (m/s^2)
@@ -475,6 +465,30 @@ const AP_Param::GroupInfo NavEKF3::var_info[] = {
     // @User: Advanced
     // @Units: gauss/s
     AP_GROUPINFO("MAGB_P_NSE", 41, NavEKF3, _magBodyProcessNoise, MAGB_P_NSE_DEFAULT),
+
+    // @Param: GPS_POS_X
+    // @DisplayName: X position of the GPS antenna (cm)
+    // @Description: Number of cm that the GPS antenna is forward of the IMU (negative if behind the IMU)
+    // @Range: -127 127
+    // @User: Advanced
+    // @Units: cm
+    AP_GROUPINFO("GPS_POS_X", 42, NavEKF3, _gpsPosXcm, 0),
+
+    // @Param: GPS_POS_Y
+    // @DisplayName: Y position of the GPS antenna (cm)
+    // @Description: Number of cm that the GPS antenna is to the right of the IMU (negative if to the left of the IMU)
+    // @Range: -127 127
+    // @User: Advanced
+    // @Units: cm
+    AP_GROUPINFO("GPS_POS_Y", 43, NavEKF3, _gpsPosYcm, 0),
+
+    // @Param: GPS_POS_Z
+    // @DisplayName: Z position of the GPS antenna (cm)
+    // @Description: Number of cm that the GPS antenna is below the IMU (negative if above the IMU)
+    // @Range: -127 127
+    // @User: Advanced
+    // @Units: cm
+    AP_GROUPINFO("GPS_POS_Z", 44, NavEKF3, _gpsPosZcm, 0),
 
     AP_GROUPEND
 };
@@ -673,17 +687,28 @@ int8_t NavEKF3::getPrimaryCoreIndex(void) const
     return primary;
 }
 
-
-// Return the last calculated NED position relative to the reference point (m).
+// Write the last calculated NE position relative to the reference point (m).
 // If a calculated solution is not available, use the best available data and return false
 // If false returned, do not use for flight control
-bool NavEKF3::getPosNED(int8_t instance, Vector3f &pos)
+bool NavEKF3::getPosNE(int8_t instance, Vector2f &posNE)
 {
     if (instance < 0 || instance >= num_cores) instance = primary;
     if (!core) {
         return false;
     }
-    return core[instance].getPosNED(pos);
+    return core[instance].getPosNE(posNE);
+}
+
+// Write the last calculated D position relative to the reference point (m).
+// If a calculated solution is not available, use the best available data and return false
+// If false returned, do not use for flight control
+bool NavEKF3::getPosD(int8_t instance, float &posD)
+{
+    if (instance < 0 || instance >= num_cores) instance = primary;
+    if (!core) {
+        return false;
+    }
+    return core[instance].getPosD(posD);
 }
 
 // return NED velocity in m/s
@@ -723,12 +748,12 @@ void NavEKF3::getGyroBias(int8_t instance, Vector3f &gyroBias)
     }
 }
 
-// return body axis gyro scale factor error as a percentage
-void NavEKF3::getGyroScaleErrorPercentage(int8_t instance, Vector3f &gyroScale)
+// return acceerometer bias estimate in m/s/s
+void NavEKF3::getAccelBias(int8_t instance, Vector3f &accelBias)
 {
     if (instance < 0 || instance >= num_cores) instance = primary;
     if (core) {
-        core[instance].getGyroScaleErrorPercentage(gyroScale);
+        core[instance].getAccelBias(accelBias);
     }
 }
 
@@ -791,15 +816,6 @@ void NavEKF3::getEkfControlLimits(float &ekfGndSpdLimit, float &ekfNavVelGainSca
 {
     if (core) {
         core[primary].getEkfControlLimits(ekfGndSpdLimit, ekfNavVelGainScaler);
-    }
-}
-
-// return the individual Z-accel bias estimates in m/s^2
-void NavEKF3::getAccelZBias(int8_t instance, float &zbias)
-{
-    if (instance < 0 || instance >= num_cores) instance = primary;
-    if (core) {
-        core[instance].getAccelZBias(zbias);
     }
 }
 
