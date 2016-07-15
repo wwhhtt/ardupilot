@@ -181,7 +181,7 @@ void NavEKF3_core::setAidingMode()
     // Save the previous status so we can detect when it has changed
     PV_AidingModePrev = PV_AidingMode;
 
-    // Determine if we should start aiding
+    // Determine if we should change aiding mode
      if (PV_AidingMode == AID_NONE) {
         // Don't allow filter to start position or velocity aiding until the tilt and yaw alignment is complete
         // and IMU gyro bias estimates have stabilised
@@ -193,10 +193,7 @@ void NavEKF3_core::setAidingMode()
         } else if ((frontend->_fusionModeGPS == 3) && optFlowDataPresent()) {
             PV_AidingMode = AID_RELATIVE;
         }
-    }
-
-     // Determine if we should exit optical flow aiding
-     if (PV_AidingMode == AID_RELATIVE) {
+    } else if (PV_AidingMode == AID_RELATIVE) {
          // Check if the optical flow sensor has timed out
          bool flowSensorTimeout = ((imuSampleTime_ms - flowValidMeaTime_ms) > 5000);
          // Check if the fusion has timed out (flow measurements have been rejected for too long)
@@ -204,10 +201,7 @@ void NavEKF3_core::setAidingMode()
          if (flowSensorTimeout || flowFusionTimeout) {
              PV_AidingMode = AID_NONE;
          }
-     }
-
-     // Determine if we should exit GPS aiding
-     if (PV_AidingMode == AID_ABSOLUTE) {
+     } else if (PV_AidingMode == AID_ABSOLUTE) {
          // check if we can use opticalflow as a backup
          bool optFlowBackupAvailable = (flowDataValid && !hgtTimeout);
 
