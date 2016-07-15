@@ -164,10 +164,9 @@ void NavEKF3_core::InitialiseVariables()
     flowGyroBias.y = 0;
     heldVelNE.zero();
     PV_AidingMode = AID_NONE;
+    PV_AidingModePrev = AID_NONE;
     posTimeout = true;
     velTimeout = true;
-    isAiding = false;
-    prevIsAiding = false;
     memset(&faultStatus, 0, sizeof(faultStatus));
     hgtRate = 0.0f;
     mag_state.q0 = 1;
@@ -254,6 +253,7 @@ void NavEKF3_core::InitialiseVariables()
     magFieldLearned = false;
     delAngBiasLearned = false;
     memset(&filterStatus, 0, sizeof(filterStatus));
+    gpsInhibit = false;
 
     // zero data buffers
     storedIMU.reset();
