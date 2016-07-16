@@ -138,6 +138,13 @@ const AP_Param::GroupInfo AP_GPS::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("AUTO_CONFIG", 13, AP_GPS, _auto_config, 1),
 
+    // @Param: UBX_DT
+    // @DisplayName: Set the output time step in msec for ublox receivers
+    // @Description: Controls if the autopilot should automatically configure the GPS based on the parameters and default settings
+    // @Values: 200:5 Hz,100:10 Hz
+    // @User: Advanced
+    AP_GROUPINFO("UBX_DT", 14, AP_GPS, _ubx_dt, 200),
+
     AP_GROUPEND
 };
 

@@ -50,7 +50,6 @@
 #define UBX_MSG_TYPES 2
 
 #define UBLOX_MAX_PORTS 6
-#define MEASURE_RATE 200
 
 #define RATE_POSLLH 1
 #define RATE_STATUS 1
@@ -507,7 +506,7 @@ private:
     // used to update fix between status and position packets
     AP_GPS::GPS_Status next_fix;
 
-    uint32_t _last_5hz_time;
+    uint32_t _last_time_ms;
 
     bool _cfg_needs_save;
 

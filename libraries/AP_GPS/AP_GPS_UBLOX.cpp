@@ -65,14 +65,14 @@ AP_GPS_UBLOX::AP_GPS_UBLOX(AP_GPS &_gps, AP_GPS::GPS_State &_state, AP_HAL::UART
     _new_speed(0),
     _disable_counter(0),
     next_fix(AP_GPS::NO_FIX),
-    _last_5hz_time(0),
+    _last_time_ms(0),
     _cfg_needs_save(false),
     noReceivedHdop(true)
 {
     // stop any config strings that are pending
     gps.send_blob_start(state.instance, NULL, 0);
 
-    _last_5hz_time = AP_HAL::millis();
+    _last_time_ms = AP_HAL::millis();
 
     // start the process of updating the GPS rates
     _request_next_config();
@@ -763,7 +763,7 @@ AP_GPS_UBLOX::_parse_gps(void)
            _ublox_port = _buffer.prt.portID;
            return false;
         case MSG_CFG_RATE:
-            if(_buffer.nav_rate.measure_rate_ms != MEASURE_RATE ||
+            if(_buffer.nav_rate.measure_rate_ms != gps._ubx_dt ||
                _buffer.nav_rate.nav_rate != 1 ||
                _buffer.nav_rate.timeref != 0) {
                _configure_rate();
@@ -901,11 +901,8 @@ AP_GPS_UBLOX::_parse_gps(void)
         if (next_fix >= AP_GPS::GPS_OK_FIX_2D) {
             state.last_gps_time_ms = AP_HAL::millis();
             if (state.time_week == _buffer.solution.week &&
-                state.time_week_ms + 200 == _buffer.solution.time) {
-                // we got a 5Hz update. This relies on the way
-                // that uBlox gives timestamps that are always
-                // multiples of 200 for 5Hz
-                _last_5hz_time = state.last_gps_time_ms;
+                state.time_week_ms < _buffer.solution.time) {
+                _last_time_ms = state.last_gps_time_ms;
             }
             state.time_week_ms    = _buffer.solution.time;
             state.time_week       = _buffer.solution.week;
@@ -978,10 +975,10 @@ AP_GPS_UBLOX::_parse_gps(void)
     if (_new_position && _new_speed && _last_vel_time == _last_pos_time) {
         _new_speed = _new_position = false;
         // allow the GPS configuration to run through the full loop at least once before throwing this
-        if (state.status != AP_GPS::NO_FIX && AP_HAL::millis() - _last_5hz_time > 20000U) {
+        if (state.status != AP_GPS::NO_FIX && AP_HAL::millis() - _last_time_ms > 20000U) {
             // the gps seems to be slow, possibly due to a brown out
             // invalidate the config so it can be reset
-            _last_5hz_time = AP_HAL::millis();
+            _last_time_ms = AP_HAL::millis();
             _unconfigured_messages = CONFIG_ALL;
             _request_next_config();
             GCS_MAVLINK::send_statustext_all(MAV_SEVERITY_CRITICAL,
@@ -1174,7 +1171,7 @@ void
 AP_GPS_UBLOX::_configure_rate(void)
 {
     struct ubx_cfg_nav_rate msg;
-    msg.measure_rate_ms = MEASURE_RATE;
+    msg.measure_rate_ms = gps._ubx_dt;
     msg.nav_rate        = 1;
     msg.timeref         = 0;     // UTC time
     _send_message(CLASS_CFG, MSG_CFG_RATE, &msg, sizeof(msg));
