@@ -81,6 +81,10 @@ const AP_Param::Info ReplayVehicle::var_info[] = {
     // @Path: ../libraries/DataFlash/DataFlash.cpp
     GOBJECT(dataflash, "LOG", DataFlash_Class),
     
+    // @Group: EK3_
+    // @Path: ../libraries/AP_NavEKF3/AP_NavEKF3.cpp
+    GOBJECTN(EKF3, NavEKF3, "EK3_", NavEKF3),
+
     AP_VAREND
 };
 
@@ -93,6 +97,9 @@ void ReplayVehicle::load_parameters(void)
     }
     AP_Param::set_default_by_name("EKF_ENABLE", 1);
     AP_Param::set_default_by_name("EK2_ENABLE", 1);
+    AP_Param::set_default_by_name("EK2_IMU_MASK", 1);
+    AP_Param::set_default_by_name("EK3_ENABLE", 1);
+    AP_Param::set_default_by_name("EK3_IMU_MASK", 1);
     AP_Param::set_default_by_name("LOG_REPLAY", 1);
     AP_Param::set_default_by_name("AHRS_EKF_TYPE", 2);
     AP_Param::set_default_by_name("LOG_FILE_BUFSIZE", 60);
@@ -696,7 +703,7 @@ void Replay::read_sensors(const char *type)
         }
     }
     
-    if (logmatch && streq(type, "NKF1")) {
+    if (logmatch && (streq(type, "NKF1") || streq(type, "XKF1"))) {
         write_ekf_logs();
     }
 }
