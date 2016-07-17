@@ -44,8 +44,8 @@
 #define POSNE_M_NSE_DEFAULT     0.5f
 #define ALT_M_NSE_DEFAULT       3.0f
 #define MAG_M_NSE_DEFAULT       0.05f
-#define GYRO_P_NSE_DEFAULT      3.0E-02f
-#define ACC_P_NSE_DEFAULT       6.0E-01f
+#define GYRO_P_NSE_DEFAULT      2.2E-02f
+#define ACC_P_NSE_DEFAULT       3.0E-01f
 #define GBIAS_P_NSE_DEFAULT     3.0E-04f
 #define ABIAS_P_NSE_DEFAULT     3.0E-03f
 #define MAGB_P_NSE_DEFAULT      1.0E-04f
@@ -92,8 +92,8 @@
 #define POSNE_M_NSE_DEFAULT     0.5f
 #define ALT_M_NSE_DEFAULT       3.0f
 #define MAG_M_NSE_DEFAULT       0.05f
-#define GYRO_P_NSE_DEFAULT      3.0E-02f
-#define ACC_P_NSE_DEFAULT       6.0E-01f
+#define GYRO_P_NSE_DEFAULT      2.2E-02f
+#define ACC_P_NSE_DEFAULT       3.0E-01f
 #define GBIAS_P_NSE_DEFAULT     3.0E-04f
 #define ABIAS_P_NSE_DEFAULT     3.0E-03f
 #define MAGB_P_NSE_DEFAULT      1.0E-04f
