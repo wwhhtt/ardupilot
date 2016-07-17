@@ -4030,7 +4030,7 @@ void NavEKF_core::readGpsData()
 void NavEKF_core::readHgtData()
 {
     // check to see if baro measurement has changed so we know if a new measurement has arrived
-    if (_baro.healthy() && _baro.get_last_update() != lastHgtMeasTime) {
+    if (_baro.get_last_update() != lastHgtMeasTime) {
         // Don't use Baro height if operating in optical flow mode as we use range finder instead
         if (frontend._fusionModeGPS == 3 && frontend._altSource == 1) {
             if ((imuSampleTime_ms - rngValidMeaTime_ms) < 2000) {
