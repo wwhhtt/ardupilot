@@ -27,6 +27,8 @@ void NavEKF3_core::controlMagYawReset()
     if (assume_zero_sideslip() && !finalInflightYawInit && inFlight ) {
         gpsYawResetRequest = true;
         return;
+    } else {
+        gpsYawResetRequest = false;
     }
 
     // Quaternion and delta rotation vector that are re-used for different calculations
@@ -96,7 +98,7 @@ void NavEKF3_core::controlMagYawReset()
         // and get an updated quaternion
         Quaternion newQuat = calcQuatAndFieldStates(eulerAngles.x, eulerAngles.y);
 
-        // if a yaw reset has been requested, apply the updated quaterniont the current state
+        // if a yaw reset has been requested, apply the updated quaternion to the current state
         if (magYawResetRequest) {
             // previous value used to calculate a reset delta
             Quaternion prevQuat = stateStruct.quat;
@@ -177,39 +179,35 @@ void NavEKF3_core::realignYawGPS()
             // calculate new filter quaternion states from Euler angles
             stateStruct.quat.from_euler(eulerAngles.x, eulerAngles.y, gpsYaw);
 
+            // reset the velocity and posiiton states as they will be inaccurate due to bad yaw
+            ResetVelocity();
+            ResetPosition();
+
             // set the yaw angle variance to a larger value to reflect the uncertainty in yaw
             angleErrVarVec.z = sq(radians(45.0f));
 
             // reset the quaternion covariances using the rotation vector variances
+            zeroRows(P,0,3);
+            zeroCols(P,0,3);
             initialiseQuatCovariances(angleErrVarVec);
 
             // send yaw alignment information to console
             hal.console->printf("EKF3 IMU%u yaw aligned to GPS velocity\n",(unsigned)imu_index);
 
-            // zero the attitude covariances becasue the corelations will now be invalid
-            zeroAttCovOnly();
-
-            // reset the position and velocity fusion timers to cause the states to be reset to the GPS on the next GPS fusion cycle
-            lastPosPassTime_ms = 0;
-            lastVelPassTime_ms = 0;
-
             // record the yaw reset event
             recordYawReset();
 
-            // clear any GPS yaw requests
+            // clear all pending yaw reset requests
             gpsYawResetRequest = false;
+            magYawResetRequest = false;
 
+            if (use_compass()) {
+                // request a mag field reset which may enable us to use the magnetoemter if the previous fault was due to bad initialisation
+                magStateResetRequest = true;
+                // clear the all sensors failed status so that the magnetometers sensors get a second chance now that we are flying
+                allMagSensorsFailed = false;
+            }
         }
-    }
-
-    // fix magnetic field states and clear any compass fault conditions
-    if (use_compass()) {
-        // submit a request to reset the magnetic field states
-        magStateResetRequest = true;
-
-        // We shoud retry the primary magnetometer if previously switched or failed
-        magSelectIndex = 0;
-        allMagSensorsFailed = false;
     }
 }
 
